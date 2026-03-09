@@ -22,7 +22,10 @@ def add_catatan():
 # Endpoint untuk mendapatkan semua catatan
 @app.route('/catatan', methods=['GET'])
 def get_catatan():
-    return jsonify(catatan_list), 200
+    return jsonify({
+        "jumlah_catatan": len(catatan_list),
+        "catatan": catatan_list
+    }), 200
 
 # Endpoint untuk mengubah catatan berdasarkan ID
 @app.route('/catatan/<int:id>', methods=['PUT'])
@@ -37,16 +40,11 @@ def update_catatan(id):
     catatan['isi'] = data['isi']
     return jsonify(catatan), 200
 
-# Endpoint untuk menghapus catatan berdasarkan ID
-@app.route('/catatan/<int:id>', methods=['DELETE'])
-def delete_catatan(id):
-    catatan = next((c for c in catatan_list if c['id'] == id), None)
-    
-    if not catatan:
-        return jsonify({"message": "Catatan tidak ditemukan"}), 404
-    
-    catatan_list.remove(catatan)
-    return jsonify({"message": "Catatan berhasil dihapus"}), 200
+# Endpoint untuk menghapus semua catatan
+@app.route('/catatan/all', methods=['DELETE'])
+def delete_all_catatan():
+    catatan_list.clear()
+    return jsonify({"message": "Semua catatan berhasil dihapus"}), 200
 
 if __name__ == '__main__':
     app.run()
