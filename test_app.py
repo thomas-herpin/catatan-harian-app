@@ -3,8 +3,7 @@ from app import app, catatan_list
 
 @pytest.fixture
 def client():
-    catatan_list.clear() 
-    
+    catatan_list.clear()
     with app.test_client() as client:
         yield client
 
@@ -27,8 +26,9 @@ def test_get_catatan(client):
     client.post('/catatan', json={"judul": "Catatan Pertama", "isi": "Isi catatan pertama"})
     response = client.get('/catatan')
     assert response.status_code == 200
-    assert len(response.json) == 1
-    assert response.json[0]['judul'] == "Catatan Pertama"
+    assert response.json['jumlah_catatan'] == 1
+    assert len(response.json['catatan']) == 1
+    assert response.json['catatan'][0]['judul'] == "Catatan Pertama"
 
 # Test untuk mengubah catatan (PUT)
 def test_update_catatan(client):
@@ -44,15 +44,17 @@ def test_update_catatan_not_found(client):
     assert response.status_code == 404
     assert response.json['message'] == "Catatan tidak ditemukan"
 
-# Test untuk menghapus catatan (DELETE)
-def test_delete_catatan(client):
+# Test untuk menghapus semua catatan
+def test_delete_all_catatan(client):
     client.post('/catatan', json={"judul": "Catatan Pertama", "isi": "Isi catatan pertama"})
-    response = client.delete('/catatan/1')
+    client.post('/catatan', json={"judul": "Catatan Kedua", "isi": "Isi catatan kedua"})
+    
+    response = client.delete('/catatan/all')
     assert response.status_code == 200
-    assert response.json['message'] == "Catatan berhasil dihapus"
-
-# Test untuk menghapus catatan yang tidak ada (DELETE)
-def test_delete_catatan_not_found(client):
-    response = client.delete('/catatan/999')
-    assert response.status_code == 404
-    assert response.json['message'] == "Catatan tidak ditemukan"
+    assert response.json['message'] == "Semua catatan berhasil dihapus"
+    
+    # Setelah penghapusan, tidak ada catatan yang tersisa
+    response = client.get('/catatan')
+    assert response.status_code == 200
+    assert response.json['jumlah_catatan'] == 0
+    assert len(response.json['catatan']) == 0
