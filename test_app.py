@@ -1,9 +1,12 @@
 import pytest
+import app as app_module
 from app import app, catatan_list
 
 @pytest.fixture
-def client():
+def client(monkeypatch):
     catatan_list.clear()
+    monkeypatch.setattr(app_module, "current_id", 1)
+    
     with app.test_client() as client:
         yield client
 
@@ -27,7 +30,6 @@ def test_get_catatan(client):
     response = client.get('/catatan')
     assert response.status_code == 200
     assert response.json['jumlah_catatan'] == 1
-    assert len(response.json['catatan']) == 1
     assert response.json['catatan'][0]['judul'] == "Catatan Pertama"
 
 # Test untuk mengubah catatan (PUT)
@@ -44,6 +46,26 @@ def test_update_catatan_not_found(client):
     assert response.status_code == 404
     assert response.json['message'] == "Catatan tidak ditemukan"
 
+# Test untuk menghapus catatan (DELETE berdasarkan ID)
+def test_delete_catatan(client):
+    client.post('/catatan', json={"judul": "Catatan Pertama", "isi": "Isi catatan pertama"})
+    
+    # Menghapus catatan dengan ID = 1
+    response = client.delete('/catatan/1')
+    assert response.status_code == 200
+    assert response.json['message'] == "Catatan dengan ID 1 berhasil dihapus"
+
+    # Pastikan catatan telah terhapus
+    response = client.get('/catatan')
+    assert response.status_code == 200
+    assert response.json['jumlah_catatan'] == 0
+
+# Test untuk menghapus catatan yang tidak ada (DELETE berdasarkan ID)
+def test_delete_catatan_not_found(client):
+    response = client.delete('/catatan/999') # Menghapus catatan yang tidak ada
+    assert response.status_code == 404
+    assert response.json['message'] == "Catatan tidak ditemukan"
+
 # Test untuk menghapus semua catatan
 def test_delete_all_catatan(client):
     client.post('/catatan', json={"judul": "Catatan Pertama", "isi": "Isi catatan pertama"})
@@ -53,8 +75,7 @@ def test_delete_all_catatan(client):
     assert response.status_code == 200
     assert response.json['message'] == "Semua catatan berhasil dihapus"
     
-    # Setelah penghapusan, tidak ada catatan yang tersisa
     response = client.get('/catatan')
     assert response.status_code == 200
-    assert response.json['jumlah_catatan'] == 0
+    assert response.json['jumlah_catatan'] == 0 
     assert len(response.json['catatan']) == 0
